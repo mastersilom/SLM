@@ -1,34 +1,48 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
-    <title>SLMF</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SLM Foundation</title>
+  <style>
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #F3F4F6; }
+    iframe { width: 100%; height: 100%; border: none; }
+  </style>
 </head>
-
 <body>
 
-    <iframe 
-        src="https://script.google.com/macros/s/AKfycbxA7dlT9VTxUVFmz6xxWiERjWDXxr-g-3iLFLi1kJYdLPWyay9KmLWnK_3pC4b14vEICw/exec"
-        width="100%"
-        height="100%"
-        allowfullscreen="true"
-        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; border: none;">
-    </iframe>
+  <iframe id="gas-frame" src="https://script.google.com/macros/s/AKfycbxcdTnz8K-FkCM2_WHQDbYcdWbYa2fDHPnzTazYUTqeUiztpLXlXheUk2ZXEYBgNXCV_A/exec" allow="geolocation *"></iframe>
 
-    <script>
-        window.onload = function () {
-
-            document.querySelector('iframe')
-                .requestFullscreen()
-                .catch((err) => {
-
-                    console.error(
-                        `Error attempting to enable full-screen mode: ${err.message}`
-                    );
-
-                });
-
-        };
-    </script>
+  <script>
+    // สคริปต์บน GitHub ดักฟังคำสั่งจาก Google Apps Script
+    window.addEventListener('message', function(event) {
+      // ถ้ารับคำสั่งว่า 'request_gps' ให้เริ่มทำงาน
+      if (event.data === 'request_gps') {
+        
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function(position) {
+              // ถ้าได้พิกัดมาแล้ว ให้ส่งข้อมูลพิกัดกลับไปให้ Iframe (Google Apps Script)
+              const gpsData = {
+                action: 'gps_success',
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              };
+              document.getElementById('gas-frame').contentWindow.postMessage(gpsData, '*');
+            },
+            function(error) {
+              // ถ้า User ปฏิเสธ หรือหาไม่เจอ ส่งกลับไปบอกว่า Error
+              document.getElementById('gas-frame').contentWindow.postMessage({ action: 'gps_error', message: error.message }, '*');
+            },
+            // บังคับใช้ความแม่นยำสูง (สำคัญมากสำหรับมือถือ)
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 } 
+          );
+        } else {
+          document.getElementById('gas-frame').contentWindow.postMessage({ action: 'gps_error', message: 'ไม่รองรับ GPS' }, '*');
+        }
+      }
+    });
+  </script>
 
 </body>
 </html>
