@@ -11,38 +11,42 @@
 </head>
 <body>
 
-  <iframe id="gas-frame" src="https://script.google.com/macros/s/AKfycbxo1KC6xJEte-v6zZuan5qwRicWA7BvtZlR0v07CoIdueP8pnEHxOBu_a6qEfSU3m1emA/exec"></iframe>
+  <iframe id="gas-frame" src="https://script.google.com/macros/s/AKfycbxo1KC6xJEte-v6zZuan5qwRicWA7BvtZlR0v07CoIdueP8pnEHxOBu_a6qEfSU3m1emA/exec" allow="geolocation *; microphone; camera"></iframe>
 
   <script>
     window.addEventListener('message', function(event) {
-      // ดักฟังคำสั่งว่า Apps Script ขอ GPS หรือไม่
       if (event.data === 'request_gps') {
         
-        // ถ้าเบราว์เซอร์รองรับ GPS
+        // เช็คว่ามือถือรองรับ GPS ไหม
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
             function(position) {
-              // ดึงพิกัดสำเร็จ -> ส่งข้อมูลพิกัดกลับไปให้ Apps Script
-              const gpsData = {
+              // ถ้าสำเร็จ ส่งพิกัดกลับไป
+              document.getElementById('gas-frame').contentWindow.postMessage({
                 action: 'gps_success',
                 lat: position.coords.latitude,
                 lng: position.coords.longitude
-              };
-              document.getElementById('gas-frame').contentWindow.postMessage(gpsData, '*');
-            },
-            function(error) {
-              // ถ้าผู้ใช้กดไม่อนุญาต หรือหาไม่เจอ -> ส่ง Error กลับไป
-              document.getElementById('gas-frame').contentWindow.postMessage({ 
-                action: 'gps_error', 
-                message: error.message 
               }, '*');
             },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 } 
+            function(error) {
+              // แปลงรหัส Error ให้เข้าใจง่าย
+              let msg = "เกิดข้อผิดพลาดในการดึงพิกัด";
+              if (error.code === 1) msg = "ผู้ใช้งานไม่อนุญาตให้เข้าถึง GPS";
+              if (error.code === 2) msg = "สัญญาณ GPS ขัดข้อง หรืออยู่ในจุดอับสัญญาณ";
+              if (error.code === 3) msg = "หมดเวลาการค้นหาพิกัด (Timeout)";
+              
+              document.getElementById('gas-frame').contentWindow.postMessage({ 
+                action: 'gps_error', 
+                message: msg 
+              }, '*');
+            },
+            // บังคับใช้ความแม่นยำสูงสุด และรอได้สูงสุด 15 วินาที
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 } 
           );
         } else {
           document.getElementById('gas-frame').contentWindow.postMessage({ 
             action: 'gps_error', 
-            message: 'อุปกรณ์ไม่รองรับ GPS' 
+            message: 'เบราว์เซอร์นี้ไม่รองรับระบบพิกัด GPS' 
           }, '*');
         }
       }
