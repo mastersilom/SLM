@@ -4,50 +4,59 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SLM Foundation</title>
+
+  <link rel="apple-touch-icon" href="https://img1.pic.in.th/images/Logo3833da7ae4a5153c.png">
+  <link rel="icon" type="image/png" href="https://img1.pic.in.th/images/Logo3833da7ae4a5153c.png">
+
   <style>
-    body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #F3F4F6; }
-    iframe { width: 100%; height: 100%; border: none; }
+    /* ตั้งค่าให้หน้าเว็บแสดงผลเต็มพื้นที่ 100% ไม่มีขอบ */
+    body, html { 
+      margin: 0; 
+      padding: 0; 
+      width: 100%; 
+      height: 100%; 
+      overflow: hidden; 
+      background-color: #1A2B4C; 
+    }
+    iframe { 
+      width: 100%; 
+      height: 100%; 
+      border: none; 
+    }
   </style>
 </head>
 <body>
 
-  <iframe id="gas-frame" src="https://script.google.com/macros/s/AKfycbwyDpH_HeEgbdFzIA06uBAG2ZjfULOfisJlB2l9DwTzakcYUfMFosOCNESFNNDvRs9SeA/exec" allow="geolocation *; microphone; camera"></iframe>
+  <iframe id="gas-frame" src="https://script.google.com/macros/s/AKfycbwyDpH_HeEgbdFzIA06uBAG2ZjfULOfisJlB2l9DwTzakcYUfMFosOCNESFNNDvRs9SeA/exec" allow="geolocation *; microphone; camera; display-capture"></iframe>
 
   <script>
+    // ระบบดักฟังคำสั่งขอ GPS จาก Google Apps Script
     window.addEventListener('message', function(event) {
       if (event.data === 'request_gps') {
         
-        // เช็คว่ามือถือรองรับ GPS ไหม
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
             function(position) {
-              // ถ้าสำเร็จ ส่งพิกัดกลับไป
-              document.getElementById('gas-frame').contentWindow.postMessage({
+              // ส่งพิกัดกลับไปให้ Google Apps Script โดยตรง
+              event.source.postMessage({
                 action: 'gps_success',
                 lat: position.coords.latitude,
                 lng: position.coords.longitude
               }, '*');
             },
             function(error) {
-              // แปลงรหัส Error ให้เข้าใจง่าย
               let msg = "เกิดข้อผิดพลาดในการดึงพิกัด";
-              if (error.code === 1) msg = "ผู้ใช้งานไม่อนุญาตให้เข้าถึง GPS";
-              if (error.code === 2) msg = "สัญญาณ GPS ขัดข้อง หรืออยู่ในจุดอับสัญญาณ";
+              if (error.code === 1) msg = "คุณยังไม่ได้อนุญาตให้เข้าถึง GPS";
+              if (error.code === 2) msg = "สัญญาณ GPS ขัดข้อง";
               if (error.code === 3) msg = "หมดเวลาการค้นหาพิกัด (Timeout)";
               
-              document.getElementById('gas-frame').contentWindow.postMessage({ 
-                action: 'gps_error', 
-                message: msg 
-              }, '*');
+              event.source.postMessage({ action: 'gps_error', message: msg }, '*');
             },
-            // บังคับใช้ความแม่นยำสูงสุด และรอได้สูงสุด 15 วินาที
+            // บังคับความแม่นยำสูง
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 } 
           );
         } else {
-          document.getElementById('gas-frame').contentWindow.postMessage({ 
-            action: 'gps_error', 
-            message: 'เบราว์เซอร์นี้ไม่รองรับระบบพิกัด GPS' 
-          }, '*');
+          event.source.postMessage({ action: 'gps_error', message: 'เบราว์เซอร์ไม่รองรับ GPS' }, '*');
         }
       }
     });
